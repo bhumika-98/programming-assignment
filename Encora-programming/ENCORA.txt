@@ -107,9 +107,14 @@ make sure this cross-account encryption is shared?
 	2. Removing the local route
 	3. Add custom routes for desired network like internet gateway.
 
-SECTION 4: 
+SECTION 4:
 
-		provider "aws" {
+variable "aws_region" {
+  default = "us-east-1"
+  description = "The AWS region for infrastructure will be created (default: us-east-1)"
+}
+
+provider "aws" {
   region = var.aws_region
 }
 
@@ -176,7 +181,6 @@ resource "aws_security_group" "example" {
   description = "Example Security Group"
   vpc_id      = aws_vpc.example.id
 
-  // Define your security group rules here
 }
 
 resource "aws_internet_gateway" "example" {
