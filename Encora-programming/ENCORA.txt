@@ -1,0 +1,218 @@
+SECTION 1 : Git 
+
+1. if you using git stash, where will it save data? What is diff b/w index and staging area?
+==>    if we use git stash , git saves changes in a temporary area called stash which is stored locally on our computer within the git repository typically when we need to switch other branches or perform other operations without commiting.
+
+	Both index and staging area represents an intermediate area where we make changes before committing those changes. By using 'git add' command can stage those changes .
+
+2. when would individuals use git rebase, git fast-forward, or a git fetch then push?
+		Git Rebase : It is used to incorporate changes from one branch into another by moving branch commits at the tip of the other branch . It maintains clean commit history.
+		Git fast-forward : It is used when we want to integrate changes from one branch into another, so that there will be no new commit on the target branch . 
+		Git fetch and push : git fetch used to update local repository with any new changes update in remote repository without automatically merging them.
+		After fetching , reviewing the changes and updating the remote repository with local repository changes.
+
+3. How to revert already pushed changes ?
+	By using git revert command we can revert already pushed changes. 
+				git revert <commit-hash>
+
+4. What is the difference between cherry picking commits vs trying a hard reset. What is the final
+outcome of the head reference?
+		Cherrypick : It select specific commits from one branch and incorporate with other branch without affecting commit history of the source branch . The HEAD reference remains unchanged , and new commit will be created in the target branch.
+		Hard reset: It moves HEAD reference of a branch to a specific commit , discarding all commits after that point .
+
+5.Explain the difference between git remote and git clone?
+		git remote: It is used for managing remote repositories that are connected to local git repository. It allows to view , add, rename or remove remote repo references.
+                git clone : It is used to create a copy of a existing  git repository hosted on remote server on to a  local machines. It fetches all the files and commit history from the remote repository.
+
+
+
+SECTION 2
+
+1.what is the difference between terraform count and for_each meta data function? and give a
+scenario-based example to use them?
+		Count : It is used to create a fixed number of resource instances that specify an integer value, and Terraform creates that many instances of the resource.
+		use case: If we want to create exactly multiple VMs lets say 5 
+					we can use 'count = 3'
+
+		for_each : It is used to create resources dynamically based on set of key-value pairs.
+		use case : if we want to create VM for different environment  as per the specific configuration. 
+				for_each = {
+   					
+				}
+
+2. What is Terraform taint ? When to use it? When would you use terraform state rm vs terraform taint ?
+		Terraform taint : Terraform marks a specific resource as tainted , Terraform will consider it  to be recreated during next ' terraform apply' 
+		use case : if any changes has made externally and to ensure terraform recreates that in the next apply
+
+		Terraform state rm : It is used to remove a resources and its associated state information . If we no longer needed some particular resources we can use terraform state rm.
+
+3.How would you show a diagram of all terraform resources in the state file? When is this useful?
+		By  using terraform graph. 
+	1. to identify resource dependencies and potential issues.
+	2. to check order of resources created and destroyed in correct order
+	3. to visualize and communicate infrastructure architecture.
+
+4.  Solve this expression:
+count                  = var.run_remote_environment ? var.TFC_RUN_ID !=[&quot;Yes&quot;]) : null
+
+count = var.run_remote_environment ? var.TFC_RUN_ID != "yes" ? 1 : 0 : 0
+
+5. How would you apply terraform to multiple accounts simultaneously? We want to ensure this
+follows security best practices.
+		By using IAM roles and cross- account access, leverage aws assume role for role assumption in terraform , by organizing code in seperate workspace   we can apply terraform in multiple account simultaneously.
+
+
+SECTION 3 AWS
+
+1. You have an EC2 instance that has an unencrypted volume. You want to create another
+Encrypted volume from this unencrypted volume. Which of the following steps can achieve this?
+How would you share this encrypted volume to another account? What must you ensure to
+make sure this cross-account encryption is shared?
+
+	1. creating a snapshot of an unencrypted volume.
+	2. copying the encrypted snapshot to the target aws account by permissions and account ID
+	3. sharing the encrypted snapshot to the target account by accepting the shared encrypted snapshot through ' modifysnapshot' action.
+	4.creating a new EBS volume using the shared copy of encrypted snapshot.
+	5.Attach te new encrypted volume to ec2 instances and mount it.
+
+	Ensure Secure Cross-Account Sharing:
+		1. AWS identity and IAM policies and permissions are set to allow snapshots sharing between accounts.
+		2. Encryption key policies are set to allow access to the encryption key across accounts.
+		3. VPC and security group configurations are to allow communication between instances.
+
+
+2.How will you implement service control policy and in which area are you using it?
+	1. Implementation
+		a. set up AWS Organizations
+		b. Create an SCP
+		c. Attach SCP to OU or accounts
+		d. Review and test SCP
+		e. Monitor and adjust 
+
+	2. Area of use:
+		a. access control 
+		b. security and compilance
+		c. Resource management
+		d. isolation of workloads
+
+3. How can you convert a public subnet to private subnet?
+	By removing te route taht directs traffic to the internet gateway.
+
+
+4.What is the default route for any newly created route table?
+	It is a local route which allow communication within VPC network without routing traffic outside of the vpc by default.
+
+5. How would you ensure routes in the route table DO NOT use the local routes?
+	1. Modify the route table.
+	2. Removing the local route
+	3. Add custom routes for desired network like internet gateway.
+
+SECTION 4: 
+
+		provider "aws" {
+  region = var.aws_region
+}
+
+resource "aws_vpc" "example" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "subnet_a" {
+  vpc_id                  = aws_vpc.example.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_subnet" "subnet_b" {
+  vpc_id                  = aws_vpc.example.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "us-east-1b"
+  map_public_ip_on_launch = true
+}
+
+resource "aws_route_table" "example" {
+  vpc_id = aws_vpc.example.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.example.id
+  }
+}
+
+resource "aws_autoscaling_group" "example" {
+  name                 = "example-asg"
+  availability_zones   = [aws_subnet.subnet_a.availability_zone, aws_subnet.subnet_b.availability_zone]
+  launch_template {
+    id      = aws_launch_template.example.id
+    version = "$Latest"
+  }
+  min_size             = 2
+  max_size             = 4
+  desired_capacity     = 2
+  default_cooldown     = 300
+  health_check_type    = "ELB"
+  health_check_grace_period = 300
+  force_delete         = true
+}
+
+resource "aws_launch_template" "example" {
+  name_prefix   = "example-lt"
+  description   = "Example Launch Template"
+  instance_type = "t2.micro"
+  key_name      = "your-key-name"
+  security_groups = [aws_security_group.example.id]
+  iam_instance_profile {
+    name = "example-instance-profile"
+  }
+  user_data = <<-EOF
+              #!/bin/bash
+              # Your user data script here
+              EOF
+}
+
+resource "aws_security_group" "example" {
+  name_prefix = "example-sg"
+  description = "Example Security Group"
+  vpc_id      = aws_vpc.example.id
+
+  // Define your security group rules here
+}
+
+resource "aws_internet_gateway" "example" {
+  vpc_id = aws_vpc.example.id
+}
+
+resource "aws_instance" "example" {
+  ami           = "your-ami-id"
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.subnet_a.id
+  associate_public_ip_address = true
+  security_groups = [aws_security_group.example.id]
+  key_name      = "your-key-name"
+}
+
+resource "aws_lb" "example" {
+  name               = "example-lb"
+  internal           = false
+  load_balancer_type = "application"
+  subnets            = [aws_subnet.subnet_a.id, aws_subnet.subnet_b.id]
+
+  enable_deletion_protection = false
+
+  enable_http2 = true
+  enable_cross_zone_load_balancing = true
+
+  enable_deletion_protection = false
+
+  tags = {
+    Name = "example-lb"
+  }
+}
+
+	
+	
+
+
+		
+
